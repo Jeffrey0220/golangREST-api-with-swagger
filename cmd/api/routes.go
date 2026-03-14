@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func (app *application) routes() http.Handler {
@@ -11,14 +13,29 @@ func (app *application) routes() http.Handler {
 
 	v1 := g.Group("/api/v1")
 	{
-		v1.POST("/events", app.createEvent)
 		v1.GET(("/events"), app.getAllEvents)
 		v1.GET("/events/:id", app.getEvent)
-		v1.PUT("/events/:id", app.updateEvent)
-		v1.DELETE("/events/:id", app.deleteEvent)
 
 		v1.POST("/auth/register", app.registerUser)
+		v1.POST("/auth/login", app.login)
+
+		v1.GET("/events/:id/attendees", app.getAttendeesForEvent)
+
+		v1.GET("/events/:id/events", app.getEventsByAttendee)
 	}
+
+	authGroup := v1.Group("/")
+	authGroup.Use(app.AuthMiddleware())
+	{
+		authGroup.POST("/events", app.createEvent)
+		authGroup.PUT("/events/:id", app.updateEvent)
+		authGroup.POST("/events/:id/attendees/:userId", app.addAttendeeToEvent)
+		authGroup.DELETE("/events/:id/attendees/:userId", app.deleteAttendeeFromEvent)
+		authGroup.DELETE("/events/:id", app.deleteEvent)
+
+	}
+
+	g.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return g
 }
